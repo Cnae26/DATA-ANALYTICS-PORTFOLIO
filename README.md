@@ -8,10 +8,28 @@ Previously, I worked in Logistics (Inbound Process), where I gained experience i
 
 ## Featured Projects
 
-### Online Retail Sales Analytics
-
-End-to-end analysis of more than 500,000 online retail transaction records, focusing on sales performance, product performance, customer behavior, and returns.
+### 1. Online Retail Sales Analytics
+End-to-end analysis of online retail transaction data.
 
 **Tools:** PostgreSQL, Supabase, SQL, Power BI
 
 [View Project](https://github.com/Cnae26/online-retail-sales-analytics)
+
+---
+
+### 2. Shipment Monitoring & Operations Dashboard
+
+Web-based shipment monitoring dashboard designed from real import and logistics workflows.
+
+Key features:
+- ETD/ETA monitoring
+- Shipment status classification
+- Document tracking
+- Supplier and staff ownership monitoring
+- Search, filters, grouping, and operational views
+- Sample data for portfolio demonstration
+
+**Tools:** HTML, CSS, JavaScript, Logistics Operations
+
+[Live Demo](https://cnae26.github.io/DATA-ANALYTICS-PORTFOLIO/shipment-monitor-demo/)  
+[View Source](https://github.com/Cnae26/DATA-ANALYTICS-PORTFOLIO/tree/main/shipment-monitor-demo)
