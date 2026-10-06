@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CDS Shipment Monitoring — Demo</title>
+<style>
+  :root{
+    --ink:#0f172a; --ink-2:#475569; --ink-3:#94a3b8;
+    --line:#e5e9ef; --line-2:#eef2f6; --surface:#fff; --surface-2:#f7f9fb; --canvas:#eef1f5;
+    --primary:#0d9488; --primary-d:#0f766e; --primary-soft:#ecfdfa;
+    --ok:#2E7D32; --ok-bg:#eaf7ee; --att:#8A6D00; --att-bg:#fbf4d8;
+    --urg:#C2410C; --urg-bg:#fceadd; --ovd:#C62828; --ovd-bg:#fce8e8;
+    --pre:#6d28d9; --pre-bg:#f1ecfe;
+    --r:14px; --sh-sm:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.05);
+    --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--sans);color:var(--ink);background:var(--canvas);font-size:13px;-webkit-font-smoothing:antialiased}
+  .app{display:flex;flex-direction:column;min-height:100vh}
+
+  /* header */
+  .top{display:flex;align-items:center;gap:13px;padding:13px 22px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .logo{width:36px;height:36px;border-radius:10px;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px;letter-spacing:.5px}
+  .brand{display:flex;flex-direction:column;line-height:1.25}
+  .brand b{font-size:15px;font-weight:800}
+  .brand span{font-size:11.5px;color:var(--ink-3)}
+  .demo-badge{margin-left:4px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--primary-d);background:var(--primary-soft);border:1px solid #bfe9e2;padding:3px 9px;border-radius:999px}
+  .top-sp{flex:1}
+  .ghost{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:650;color:var(--ink-2);cursor:default}
+  .cta{background:var(--primary);color:#fff;border:0;border-radius:9px;padding:8px 15px;font-size:12.5px;font-weight:700;cursor:default}
+
+  .wrap{padding:20px 22px;max-width:1500px;margin:0 auto;width:100%}
+  .h1{font-size:23px;font-weight:800;letter-spacing:-.3px}
+  .h1 span{font-weight:500;color:var(--ink-3);font-size:14px;margin-left:8px}
+  .sub{color:var(--ink-3);font-size:12.5px;margin:4px 0 16px}
+
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+  .kpi{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;box-shadow:var(--sh-sm);cursor:pointer;transition:.12s;text-align:left;font-family:var(--sans)}
+  .kpi:hover{border-color:#d7dce0}
+  .kpi.on{box-shadow:inset 0 0 0 1.5px var(--primary);border-color:var(--primary)}
+  .kpi-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;font-size:16px}
+  .kpi-n{font-size:23px;font-weight:800;letter-spacing:-.6px;line-height:1}
+  .kpi-l{display:flex;flex-direction:column;line-height:1.3}
+  .kpi-l b{font-size:12.5px;font-weight:700}
+  .kpi-l span{font-size:10.5px;color:var(--ink-3)}
+  .t-ink .kpi-ic{background:var(--primary-soft);color:var(--primary-d)}
+  .t-ok .kpi-ic{background:var(--ok-bg);color:var(--ok)}
+  .t-att .kpi-ic{background:var(--att-bg);color:var(--att)}
+  .t-urg .kpi-ic{background:var(--urg-bg);color:var(--urg)}
+  .t-ovd .kpi-ic{background:var(--ovd-bg);color:var(--ovd)}
+  .t-pre .kpi-ic{background:var(--pre-bg);color:var(--pre)}
+
+  /* toolbar */
+  .tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh-sm);margin-bottom:11px}
+  .search{display:flex;align-items:center;gap:8px;flex:1;min-width:200px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:0 11px;height:36px;color:var(--ink-3)}
+  .search:focus-within{border-color:var(--primary);background:#fff}
+  .search input{flex:1;border:0;background:transparent;font-size:13px;color:var(--ink);outline:none;font-family:var(--sans)}
+  .count{font-size:12px;font-weight:700;color:var(--primary-d);background:var(--primary-soft);padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .clear{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;color:var(--ink-2);font-size:11.5px;font-weight:600;border-radius:999px;padding:4px 10px;cursor:pointer}
+  .sp{flex:1}
+  .seg{display:inline-flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .seg button{border:0;background:transparent;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;font-family:var(--sans)}
+  .seg button.on{background:#fff;color:var(--primary-d);box-shadow:var(--sh-sm)}
+  .groupsel{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:0 10px;height:34px;color:var(--ink-3)}
+  .groupsel select{border:0;background:transparent;font-size:12.5px;font-weight:600;color:var(--ink);outline:none;cursor:pointer;font-family:var(--sans)}
+  .chips{display:inline-flex;gap:6px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:650;color:var(--ink-2);cursor:pointer}
+  .chip .sw{width:8px;height:8px;border-radius:3px;background:var(--ink-3)}
+  .chip.on{border-color:var(--primary);background:var(--primary-soft);color:var(--primary-d)}
+  .chip.on .sw{background:var(--primary)}
+
+  /* filters */
+  .filters{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+  .mchip{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 10px;height:34px;box-shadow:var(--sh-sm)}
+  .mchip-l{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-3)}
+  .mchip select{border:0;background:transparent;font-size:12.5px;font-weight:600;color:var(--ink);outline:none;cursor:pointer;font-family:var(--sans)}
+  .daterange{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:5px 9px;height:34px;box-shadow:var(--sh-sm)}
+  .dr-field{border:0;background:var(--surface-2);border-radius:6px;font-size:11.5px;font-weight:700;color:var(--primary-d);outline:none;cursor:pointer;padding:3px 4px}
+  .daterange input[type=date]{border:0;background:transparent;font-size:12px;color:var(--ink);outline:none;width:118px;cursor:pointer}
+
+  /* grid */
+  .scroll{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);box-shadow:var(--sh-sm)}
+  table{border-collapse:separate;border-spacing:0;min-width:100%;font-size:12.5px}
+  th,td{white-space:nowrap;text-align:left;border-bottom:1px solid var(--line-2)}
+  thead .grp th{position:sticky;top:0;z-index:6;background:var(--surface-2);height:30px;padding:0 13px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line);border-left:1px solid var(--line-2)}
+  thead .grp th .th{font-weight:500;color:#aeb7c0;font-size:9.5px;text-transform:none;margin-left:5px}
+  thead .grp th.g-ship{background:var(--primary-soft);color:var(--primary-d)}
+  thead .cols th{position:sticky;top:29px;z-index:5;background:var(--surface);padding:8px 13px;font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--ink-2);border-bottom:1.5px solid var(--line);border-left:1px solid var(--line-2)}
+  thead .cols th.sortable{cursor:pointer;user-select:none}
+  thead .cols th.sortable:hover{background:var(--surface-2);color:var(--primary-d)}
+  thead .cols th.sorted{color:var(--primary-d);background:var(--primary-soft)}
+  .th-in{display:inline-flex;align-items:center;gap:4px}
+  .ar{font-size:8px;color:var(--primary)}
+  th.c-id,td.c-id{position:sticky;left:0;min-width:238px;box-shadow:1px 0 0 var(--line)}
+  thead .grp th.c-id{z-index:8}
+  thead .cols th.c-id{z-index:7}
+  td.c-id{z-index:3;background:var(--surface);border-left:3px solid var(--line)}
+  tbody tr:nth-child(even) td.c-id{background:#fcfdfd}
+  tbody td{padding:9px 13px;border-left:1px solid var(--line-2);vertical-align:top}
+  tbody tr{cursor:pointer}
+  tbody tr:hover td{background:#f1f8f8 !important}
+  tr.s-OVERDUE td.c-id{border-left-color:var(--ovd);background:var(--ovd-bg)}
+  tr.s-OVERDUE:nth-child(even) td.c-id{background:#fbe2e2}
+  tr.s-URGENT td.c-id{border-left-color:var(--urg)}
+  tr.s-ATTENTION td.c-id{border-left-color:var(--att)}
+  tr.s-ON_TRACK td.c-id{border-left-color:var(--ok)}
+  tr.s-PREBOOK td.c-id{border-left-color:var(--pre)}
+
+  .owner{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:750}
+  .av{width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+  .sup{display:block;font-size:11.5px;color:var(--ink-2);margin-top:3px;max-width:214px;overflow:hidden;text-overflow:ellipsis}
+  .po{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px;max-width:214px;overflow:hidden;text-overflow:ellipsis}
+  .pre-tag{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;background:var(--pre-bg);color:var(--pre);padding:1px 6px;border-radius:5px;margin-left:6px;vertical-align:middle}
+  .muted{color:var(--ink-3)}
+  .date{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+  .date.late{color:var(--ovd);font-weight:700}
+  .date.ok{color:var(--ok);font-weight:700}
+  .pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:var(--line-2);color:var(--ink-2)}
+  .pill.mode{background:#eef2ff;color:#4338ca}
+  .pill.fwd{background:var(--primary-soft);color:var(--primary-d)}
+  .st{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.3px;padding:3px 9px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+  .st i{width:7px;height:7px;border-radius:50%}
+  .stage{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--primary);color:#fff;font-weight:800;font-size:11px}
+  .stage.pre{background:var(--pre-bg);color:var(--pre)}
+  .docs{display:flex;gap:4px;align-items:center}
+  .dc{width:19px;height:19px;border-radius:6px;display:grid;place-items:center;font-size:9px;font-weight:800;background:var(--line-2);color:#aab2bb;border:1px solid var(--line)}
+  .dc.on{background:var(--ok-bg);color:var(--ok);border-color:#bfe3c7}
+  .dc.hs{font-size:8px}
+  .prog{margin-left:4px;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--ink-3)}
+  .pend{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:230px;font-size:11.5px;line-height:1.4}
+  .cbm,.uom-n{font-family:var(--mono);font-size:11.5px}
+  .uom{font-style:normal;font-size:10px;color:var(--ink-3)}
+  .grouprow td{position:sticky;left:0;background:var(--surface-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 14px !important;font-size:12px}
+  .grouprow b{color:var(--primary-d)}
+  .gmeta{margin-left:10px;font-size:11px;color:var(--ink-3);font-weight:600}
+  .empty{padding:50px;text-align:center;color:var(--ink-3)}
+  body.compact tbody td{padding:5px 13px}
+  body.compact .sup{display:none}
+  body.hide-sched .col-sched,body.hide-cargo .col-cargo,body.hide-docs .col-docs,body.hide-pend .col-pend{display:none}
+
+  /* drawer */
+  .scrim{position:fixed;inset:0;background:rgba(15,23,42,.34);display:none;z-index:40}
+  .scrim.open{display:block}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,92vw);background:var(--surface);box-shadow:-12px 0 40px rgba(15,23,42,.16);transform:translateX(100%);transition:transform .22s;z-index:41;display:flex;flex-direction:column;overflow-y:auto}
+  .drawer.open{transform:translateX(0)}
+  .dh{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);padding:16px 18px;z-index:2}
+  .dh-top{display:flex;align-items:center;gap:10px}
+  .dh-ref{font-family:var(--mono);font-weight:800;font-size:17px}
+  .dh-x{margin-left:auto;border:0;background:var(--surface-2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;color:var(--ink-2)}
+  .dh-sup{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+  .dbody{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+  .card{border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+  .card-h{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+  .kv{display:grid;grid-template-columns:104px 1fr;gap:7px 10px;font-size:12.5px;align-items:baseline}
+  .kv .k{color:var(--ink-3);font-size:11px}
+  .kv .v{font-weight:600}
+  .kv .v.mono{font-family:var(--mono)}
+  .hs-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:8px}
+  .hs-pill.on{background:var(--ok-bg);color:var(--ok)}
+  .hs-pill.off{background:var(--att-bg);color:var(--att)}
+  .chk{display:flex;align-items:center;gap:10px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);margin-bottom:6px;font-size:12.5px;font-weight:650}
+  .chk .box{width:19px;height:19px;border-radius:6px;border:1.6px solid #c4cbd2;background:#fff;display:grid;place-items:center;color:#fff;flex:none;font-size:11px}
+  .chk.on{background:#f1faf4;border-color:#cce9d6}
+  .chk.on .box{background:var(--ok);border-color:var(--ok)}
+  .chk .r{margin-left:auto;font-size:10.5px;color:var(--ink-3)}
+
+  .foot{margin:22px;text-align:center;color:var(--ink-3);font-size:11.5px}
+  @media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="logo">CDS</div>
+    <div class="brand"><b>Shipment Monitoring</b><span>Import logistics control tower</span></div>
+    <span class="demo-badge">● Live Demo · sample data</span>
+    <div class="top-sp"></div>
+    <div class="ghost">⟳ Refresh</div>
+    <button class="cta">+ New Shipment</button>
+  </div>
+
+  <div class="wrap">
+    <div class="h1">Monitoring Overview <span>ภาพรวมการติดตาม</span></div>
+    <div class="sub">Single-table control view — owner-first, filterable &amp; sortable like a spreadsheet, with live status, document and customs tracking per shipment.</div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="tools">
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="q" placeholder="Search owner / supplier / PO# / ref">
+      </div>
+      <span class="count" id="count">0</span>
+      <button class="clear" id="clear" style="display:none">✕ Clear filters</button>
+      <span class="sp"></span>
+      <div class="groupsel">☰
+        <select id="group">
+          <option value="staff">By Owner · ตามเจ้าของ</option>
+          <option value="none">Flat · ไม่จัดกลุ่ม</option>
+          <option value="forwarder">By 3PL</option>
+          <option value="status">By Status</option>
+        </select>
+      </div>
+      <div class="seg" id="dens">
+        <button data-d="comfortable" class="on">Comfortable</button>
+        <button data-d="compact">Compact</button>
+      </div>
+      <div class="chips" id="colchips"></div>
+    </div>
+
+    <div class="filters">
+      <label class="mchip"><span class="mchip-l">Status</span><select id="fStatus"></select></label>
+      <label class="mchip"><span class="mchip-l">3PL</span><select id="fFwd"></select></label>
+      <label class="mchip"><span class="mchip-l">Mode</span><select id="fMode"></select></label>
+      <label class="mchip"><span class="mchip-l">Staff</span><select id="fStaff"></select></label>
+      <label class="daterange">
+        <select class="dr-field" id="dateField">
+          <option value="cls">CLS</option><option value="etd">ETD</option>
+          <option value="eta" selected>ETA</option><option value="ata">ATA</option>
+          <option value="delivery">ETA WH</option>
+        </select>
+        <input type="date" id="fFrom"><span>—</span><input type="date" id="fTo">
+      </label>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr class="grp">
+            <th class="c-id g-ship">Owner · Shipment</th>
+            <th class="col-status">Status</th>
+            <th class="col-stage">Stage</th>
+            <th class="col-pend">Pending</th>
+            <th class="col-sched" colspan="6">Schedule · กำหนดการเรือ</th>
+            <th class="col-cargo" colspan="2">Cargo · สินค้า</th>
+            <th class="col-docs" colspan="2">Docs · เอกสาร</th>
+          </tr>
+          <tr class="cols" id="head"></tr>
+        </thead>
+        <tbody id="tb"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">No shipments match your filters</div>
+    </div>
+  </div>
+  <div class="foot">CDS Shipment Monitoring — portfolio demo · all data on this page is fictional sample data.</div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"></aside>
+
+<script>
+const TODAY="2026-10-06";
+const ROWS=[{"ref": "CDS2665642", "supplier": "Oceanic Textile Co., Ltd", "poNos": ["M-254-26-7468"], "staff": "Alex", "forwarder": "SWIFT-LOG", "mode": "SEA-FCL", "origin": "Shanghai", "cls": "2026-10-01", "etd": "2026-10-10", "eta": "2026-10-11", "ata": "", "delivery": "", "currentStage": 5, "status": "ATTENTION", "pendingAction": "รอเอกสารต้นฉบับจาก Supplier", "license": "PHYTO", "fta": "Form E", "docs": {"ship": true, "adv": true, "draft": true, "fta": true, "hbl": true}, "qty": 430, "uom": "Cartons", "cbm": "12.3", "hsCode": "9403.60", "hsChecked": false}, {"ref": "CDS2684868", "supplier": "GreenLeaf Housewares Ltd", "poNos": ["M-690-26-7499"], "staff": "Alex", "forwarder": "KERRY", "mode": "SEA-FCL", "origin": "Shenzhen", "cls": "2026-09-27", "etd": "2026-10-04", "eta": "2026-10-06", "ata": "", "delivery": "", "currentStage": 5, "status": "URGENT", "pendingAction": "รอ Draft paperless", "license": "", "fta": "Form E", "docs": {"ship": true, "adv": false, "draft": false, "fta": true, "hbl": true}, "qty": 0, "uom": "Cartons", "cbm": "", "hsCode": "4202.92", "hsChecked": true}, {"ref": "CDS2689817", "supplier": "Shenlong Ceramics Mfg", "poNos": ["M-644-26-8005", "M-421-26-8628", "M-699-26-8424"], "staff": "Preem", "forwarder": "KERRY", "mode": "SEA-LCL", "origin": "Shenzhen", "cls": "2026-10-20", "etd": "2026-10-30", "eta": "2026-11-01", "ata": "", "delivery": "", "currentStage": 1, "status": "ON_TRACK", "pendingAction": "รอ TISI อนุมัติ", "license": "", "fta": "", "docs": {"ship": true, "adv": true, "draft": true, "fta": false, "hbl": true}, "qty": 60, "uom": "Boxes", "cbm": "8.47", "hsCode": "3924.10", "hsChecked": true}, {"ref": "CDS2697051", "supplier": "Nordic Pack Supplies", "poNos": ["M-531-26-1642", "M-784-26-2271"], "staff": "Jes", "forwarder": "M-INTER", "mode": "AIR", "origin": "Busan", "cls": "2026-10-24", "etd": "2026-10-27", "eta": "2026-11-01", "ata": "", "delivery": "", "currentStage": 4, "status": "ON_TRACK", "pendingAction": "รอ TISI อนุมัติ", "license": "", "fta": "", "docs": {"ship": false, "adv": true, "draft": true, "fta": false, "hbl": true}, "qty": 80, "uom": "Boxes", "cbm": "1x20GP", "hsCode": "9403.60", "hsChecked": true}, {"ref": "CDS2664433", "supplier": "Summit Leather Goods", "poNos": ["M-455-26-1369", "M-572-26-6823", "M-272-26-2918"], "staff": "Nute", "forwarder": "KERRY", "mode": "SEA-FCL", "origin": "Xiamen", "cls": "2026-09-15", "etd": "2026-09-24", "eta": "2026-09-26", "ata": "2026-09-28", "delivery": "2026-10-03", "currentStage": 4, "status": "OVERDUE", "pendingAction": "เตรียมเดินพิธีการ", "license": "HEALTH", "fta": "", "docs": {"ship": true, "adv": true, "draft": true, "fta": false, "hbl": false}, "qty": 96, "uom": "Pallets", "cbm": "8.47", "hsCode": "", "hsChecked": true}, {"ref": "CDS2669853", "supplier": "BlueRiver Electronics Co.", "poNos": ["M-774-26-4822"], "staff": "Alex", "forwarder": "SWIFT-LOG", "mode": "SEA-LCL", "origin": "Shenzhen", "cls": "2026-09-26", "etd": "2026-10-03", "eta": "2026-10-04", "ata": "2026-10-07", "delivery": "2026-10-11", "currentStage": 2, "status": "OVERDUE", "pendingAction": "", "license": "TISI", "fta": "Form RCEP", "docs": {"ship": false, "adv": false, "draft": false, "fta": true, "hbl": false}, "qty": 96, "uom": "Boxes", "cbm": "1x40HQ", "hsCode": "", "hsChecked": true}, {"ref": "CDS2637256", "supplier": "Golden Harvest Foods", "poNos": ["M-163-26-4122", "M-168-26-4420"], "staff": "Nute", "forwarder": "KERRY", "mode": "SEA-FCL", "origin": "Busan", "cls": "2026-10-20", "etd": "2026-10-25", "eta": "2026-10-26", "ata": "", "delivery": "", "currentStage": 1, "status": "ON_TRACK", "pendingAction": "นัดรับตู้เข้าคลัง", "license": "", "fta": "", "docs": {"ship": true, "adv": true, "draft": true, "fta": false, "hbl": true}, "qty": 80, "uom": "Rolls", "cbm": "2x40HQ", "hsCode": "8513.10", "hsChecked": true}, {"ref": "CDS2694268", "supplier": "Everbright Lighting Inc", "poNos": ["M-577-26-8870", "M-595-26-6109"], "staff": "Alex", "forwarder": "KERRY", "mode": "SEA-FCL", "origin": "Busan", "cls": "2026-09-25", "etd": "2026-10-02", "eta": "2026-10-04", "ata": "2026-10-05", "delivery": "", "currentStage": 5, "status": "OVERDUE", "pendingAction": "รอ TISI อนุมัติ", "license": "HEALTH", "fta": "Form AK", "docs": {"ship": true, "adv": false, "draft": true, "fta": true, "hbl": false}, "qty": 80, "uom": "Rolls", "cbm": "8.47", "hsCode": "7013.37", "hsChecked": false}, {"ref": "CDS2655812", "supplier": "Pacific Rubber Works", "poNos": ["M-654-26-9236", "M-437-26-4654"], "staff": "Jes", "forwarder": "KERRY", "mode": "SEA-FCL", "origin": "Ho Chi Minh", "cls": "2026-09-25", "etd": "2026-09-27", "eta": "2026-10-02", "ata": "2026-10-05", "delivery": "2026-10-07", "currentStage": 7, "status": "ON_TRACK", "pendingAction": "เตรียมเดินพิธีการ", "license": "", "fta": "Form AK", "docs": {"ship": true, "adv": true, "draft": false, "fta": true, "hbl": true}, "qty": 320, "uom": "Cartons", "cbm": "12.3", "hsCode": "8513.10", "hsChecked": true}, {"ref": "CDS2653583", "supplier": "Lotus Home Decor Ltd", "poNos": ["M-594-26-1031"], "staff": "Nute", "forwarder": "M-INTER", "mode": "AIR", "origin": "Shanghai", "cls": "2026-10-24", "etd": "2026-10-26", "eta": "2026-10-30", "ata": "", "delivery": "", "currentStage": 7, "status": "ON_TRACK", "pendingAction": "รอ TISI อนุมัติ", "license": "PHYTO", "fta": "Form RCEP", "docs": {"ship": false, "adv": true, "draft": true, "fta": true, "hbl": false}, "qty": 96, "uom": "Boxes", "cbm": "1x40HQ", "hsCode": "9403.60", "hsChecked": false}, {"ref": "CDS2679020", "supplier": "Metro Stationery Mfg", "poNos": ["M-262-26-3785", "M-230-26-1451", "M-254-26-8624"], "staff": "Mina", "forwarder": "SWIFT-LOG", "mode": "AIR", "origin": "Kaohsiung", "cls": "2026-10-22", "etd": "2026-10-28", "eta": "2026-10-30", "ata": "", "delivery": "", "currentStage": 5, "status": "ON_TRACK", "pendingAction": "รอฉลากภาษาไทย", "license": "TISI", "fta": "", "docs": {"ship": true, "adv": true, "draft": false, "fta": false, "hbl": false}, "qty": 320, "uom": "Pallets", "cbm": "", "hsCode": "7013.37", "hsChecked": true}, {"ref": "CDS2678617", "supplier": "Cedar & Pine Furniture", "poNos": ["M-346-26-6341", "M-365-26-9918"], "staff": "Nute", "forwarder": "KERRY", "mode": "SEA-FCL", "origin": "Busan", "cls": "2026-10-06", "etd": "2026-10-12", "eta": "2026-10-17", "ata": "", "delivery": "", "currentStage": 7, "status": "ON_TRACK", "pendingAction": "", "license": "", "fta": "", "docs": {"ship": true, "adv": false, "draft": true, "fta": false, "hbl": false}, "qty": 240, "uom": "Pallets", "cbm": "", "hsCode": "3924.10", "hsChecked": false}, {"ref": "CDS2635074", "supplier": "Aurora Glassware Co.", "poNos": ["M-244-26-8757"], "staff": "Jes", "forwarder": "KERRY", "mode": "AIR", "origin": "Ningbo", "cls": "2026-09-27", "etd": "2026-10-03", "eta": "2026-10-08", "ata": "", "delivery": "", "currentStage": 5, "status": "ATTENTION", "pendingAction": "รอชำระเงินงวด 2", "license": "", "fta": "", "docs": {"ship": true, "adv": false, "draft": false, "fta": false, "hbl": true}, "qty": 0, "uom": "Boxes", "cbm": "", "hsCode": "3924.10", "hsChecked": false}, {"ref": "CDS2644025", "supplier": "Harbor Tools Industrial", "poNos": ["M-553-26-6334"], "staff": "Jes", "forwarder": "SWIFT-LOG", "mode": "AIR", "origin": "Qingdao", "cls": "2026-10-24", "etd": "2026-10-28", "eta": "2026-11-01", "ata": "", "delivery": "", "currentStage": 5, "status": "ON_TRACK", "pendingAction": "", "license": "", "fta": "", "docs": {"ship": false, "adv": false, "draft": true, "fta": false, "hbl": false}, "qty": 240, "uom": "Pallets", "cbm": "1x40HQ", "hsCode": "", "hsChecked": true}, {"ref": "CDS2622337", "supplier": "Sunrise Apparel Group", "poNos": ["M-174-26-4942"], "staff": "Nute", "forwarder": "KERRY", "mode": "SEA-FCL", "origin": "Xiamen", "cls": "2026-09-13", "etd": "2026-09-23", "eta": "2026-09-25", "ata": "", "delivery": "", "currentStage": 6, "status": "OVERDUE", "pendingAction": "นัดรับตู้เข้าคลัง", "license": "TISI", "fta": "Form RCEP", "docs": {"ship": true, "adv": true, "draft": true, "fta": true, "hbl": true}, "qty": 145, "uom": "Pallets", "cbm": "8.47", "hsCode": "9403.60", "hsChecked": true}, {"ref": "CDS2639957", "supplier": "Maple Kitchenware Ltd", "poNos": ["M-513-26-6556", "M-531-26-4207"], "staff": "Preem", "forwarder": "KERRY", "mode": "SEA-LCL", "origin": "Busan", "cls": "2026-09-11", "etd": "2026-09-14", "eta": "2026-09-19", "ata": "2026-09-22", "delivery": "2026-09-26", "currentStage": 5, "status": "OVERDUE", "pendingAction": "รอ TISI อนุมัติ", "license": "", "fta": "", "docs": {"ship": true, "adv": false, "draft": true, "fta": false, "hbl": false}, "qty": 80, "uom": "Rolls", "cbm": "", "hsCode": "3924.10", "hsChecked": true}, {"ref": "CDS2612206", "supplier": "Vertex Plastics Mfg", "poNos": ["M-532-26-5237"], "staff": "Nute", "forwarder": "SWIFT-LOG", "mode": "SEA-FCL", "origin": "Kaohsiung", "cls": "2026-10-24", "etd": "2026-10-31", "eta": "2026-11-01", "ata": "", "delivery": "", "currentStage": 3, "status": "ON_TRACK", "pendingAction": "รอ TISI อนุมัติ", "license": "PHYTO", "fta": "Form E", "docs": {"ship": false, "adv": true, "draft": false, "fta": true, "hbl": true}, "qty": 80, "uom": "Cartons", "cbm": "12.3", "hsCode": "", "hsChecked": true}, {"ref": "", "supplier": "Coral Bay Ceramics", "poNos": ["M-564-26-1189"], "staff": "Preem", "forwarder": "", "mode": "AIR", "origin": "Xiamen", "cls": "2026-10-20", "etd": "", "eta": "", "ata": "", "delivery": "", "currentStage": 0, "status": "PREBOOK", "pendingAction": "", "license": "HEALTH", "fta": "", "docs": {"ship": false, "adv": false, "draft": false, "fta": false, "hbl": true}, "qty": 80, "uom": "Pallets", "cbm": "1x20GP", "hsCode": "8513.10", "hsChecked": false}, {"ref": "", "supplier": "Ironwood Hardware Co.", "poNos": ["M-377-26-6685"], "staff": "Alex", "forwarder": "KERRY", "mode": "SEA-LCL", "origin": "Ningbo", "cls": "2026-09-08", "etd": "", "eta": "", "ata": "", "delivery": "", "currentStage": 0, "status": "PREBOOK", "pendingAction": "", "license": "HEALTH", "fta": "", "docs": {"ship": false, "adv": false, "draft": true, "fta": false, "hbl": true}, "qty": 240, "uom": "Boxes", "cbm": "1x20GP", "hsCode": "9403.60", "hsChecked": true}, {"ref": "", "supplier": "Silk Road Trading Ltd", "poNos": ["M-450-26-4254"], "staff": "Mina", "forwarder": "M-INTER", "mode": "SEA-LCL", "origin": "Ningbo", "cls": "2026-09-20", "etd": "", "eta": "", "ata": "", "delivery": "", "currentStage": 0, "status": "PREBOOK", "pendingAction": "", "license": "HEALTH", "fta": "Form RCEP", "docs": {"ship": false, "adv": true, "draft": true, "fta": true, "hbl": true}, "qty": 80, "uom": "Pallets", "cbm": "1x20GP", "hsCode": "", "hsChecked": true}, {"ref": "", "supplier": "Polar Cold Chain Co.", "poNos": ["M-375-26-8304"], "staff": "Alex", "forwarder": "", "mode": "SEA-LCL", "origin": "Busan", "cls": "2026-10-15", "etd": "", "eta": "", "ata": "", "delivery": "", "currentStage": 0, "status": "PREBOOK", "pendingAction": "", "license": "FDA", "fta": "Form E", "docs": {"ship": false, "adv": true, "draft": true, "fta": true, "hbl": true}, "qty": 320, "uom": "Pallets", "cbm": "", "hsCode": "", "hsChecked": true}, {"ref": "", "supplier": "Terra Garden Supplies", "poNos": ["M-247-26-7545"], "staff": "Jes", "forwarder": "M-INTER", "mode": "SEA-FCL", "origin": "Ningbo", "cls": "2026-09-29", "etd": "", "eta": "", "ata": "", "delivery": "", "currentStage": 0, "status": "PREBOOK", "pendingAction": "", "license": "TISI", "fta": "Form E", "docs": {"ship": true, "adv": false, "draft": false, "fta": true, "hbl": false}, "qty": 512, "uom": "Boxes", "cbm": "8.47", "hsCode": "7013.37", "hsChecked": false}];
+const STAFF=["Alex", "Mina", "Preem", "Nute", "Jes"];
+const DOCS=[["ship","Shipping Docs","S"],["adv","PO Advance","A"],["draft","Draft Paperless","D"],["fta","Form FTA","F"],["hbl","HBL / AWB","H"]];
+const SC={ON_TRACK:{l:"On Track",c:"#15803d",bg:"var(--ok-bg)",d:"var(--ok)"},ATTENTION:{l:"Attention",c:"#a35a06",bg:"var(--att-bg)",d:"#EAB308"},URGENT:{l:"Urgent",c:"#c2410c",bg:"var(--urg-bg)",d:"var(--urg)"},OVERDUE:{l:"Overdue",c:"#b91c1c",bg:"var(--ovd-bg)",d:"var(--ovd)"},PREBOOK:{l:"Pre-book",c:"#6d28d9",bg:"var(--pre-bg)",d:"var(--pre)"}};
+const ORD={OVERDUE:0,URGENT:1,ATTENTION:2,ON_TRACK:3,PREBOOK:4};
+const COLS=[["col-sched","Schedule"],["col-cargo","Cargo"],["col-docs","Docs"],["col-pend","Pending"]];
+const HEAD=[["owner","Owner · Shipper · PO#","c-id"],["status","Status","col-status"],["stage","Stage","col-stage"],["pend","Pending Action","col-pend"],["fwd","3PL","col-sched"],["mode","Mode","col-sched"],["origin","Origin","col-sched"],["cls","CLS","col-sched"],["etd","ETD","col-sched"],["eta","ETA","col-sched"],["ata","ATA","col-sched"],["delivery","ETA WH","col-sched"],["qty","Qty","col-cargo"],["cbm","CBM","col-cargo"],["docsx","Docs",""],["license","License","col-docs"]];
+
+let st={q:"",group:"staff",compact:false,kpi:"all",fFwd:"all",fMode:"all",fStaff:"all",dateField:"eta",from:"",to:"",cols:{"col-sched":1,"col-cargo":1,"col-docs":1,"col-pend":1},sort:{key:null,dir:"asc"}};
+
+const dcount=(s)=>{const req=["ship","hbl"];if((s.fta||"").trim())req.push("fta");if(s.poAdvance==="Yes")req.push("adv");const done=req.filter(k=>s.docs&&s.docs[k]).length;return{done,total:req.length,complete:req.length&&done===req.length};};
+const initials=(n)=>(n||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+function fmtD(s){if(!s)return"—";const d=new Date(s);return isNaN(d)?s:d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"});}
+function dDays(s){if(!s)return null;const d=new Date(s),t=new Date(TODAY);return isNaN(d)?null:Math.round((d-t)/864e5);}
+function poText(s){const a=s.poNos||[];return a.length?a[0]+(a.length>1?"  +"+(a.length-1):""):"";}
+const SORTERS={owner:s=>s.staff||"",status:s=>ORD[s.status]??9,stage:s=>s.currentStage,pend:s=>(s.pendingAction||"").toLowerCase(),fwd:s=>(s.forwarder||"").toLowerCase(),mode:s=>(s.mode||"").toLowerCase(),origin:s=>(s.origin||"").toLowerCase(),cls:s=>s.cls||"",etd:s=>s.etd||"",eta:s=>s.eta||"",ata:s=>s.ata||"",delivery:s=>s.delivery||"",qty:s=>s.qty||0,cbm:s=>(s.cbm||"").toLowerCase(),license:s=>(s.license||"").toLowerCase()};
+function sortRows(a,k,dir){const acc=SORTERS[k];if(!acc)return a;const m=dir==="desc"?-1:1;return[...a].sort((x,y)=>{const p=acc(x),q=acc(y),ep=(p===""||p==null),eq=(q===""||q==null);if(ep&&eq)return 0;if(ep)return 1;if(eq)return-1;if(typeof p==="number"&&typeof q==="number")return(p-q)*m;return String(p).localeCompare(String(q))*m;});}
+
+function filtered(){
+  let r=ROWS.slice();
+  if(st.kpi==="active")r=r.filter(s=>s.currentStage>=1&&s.currentStage<7);
+  else if(st.kpi!=="all")r=r.filter(s=>s.status===st.kpi);
+  if(st.fFwd!=="all")r=r.filter(s=>s.forwarder===st.fFwd);
+  if(st.fMode!=="all")r=r.filter(s=>s.mode===st.fMode);
+  if(st.fStaff!=="all")r=r.filter(s=>s.staff===st.fStaff);
+  if(st.from)r=r.filter(s=>s[st.dateField]&&s[st.dateField]>=st.from);
+  if(st.to)r=r.filter(s=>s[st.dateField]&&s[st.dateField]<=st.to);
+  const q=st.q.trim().toLowerCase();
+  if(q)r=r.filter(s=>[s.ref,s.supplier,s.staff,...(s.poNos||[])].join(" ").toLowerCase().includes(q));
+  if(st.sort.key)return sortRows(r,st.sort.key,st.sort.dir);
+  return r.sort((a,b)=>((ORD[a.status]??9)-(ORD[b.status]??9))||((dDays(a.eta)??9999)-(dDays(b.eta)??9999)));
+}
+
+function renderKpis(){
+  const c={active:0,ON_TRACK:0,ATTENTION:0,URGENT:0,OVERDUE:0,PREBOOK:0};
+  ROWS.forEach(s=>{if(s.status==="PREBOOK")c.PREBOOK++;else{if(s.currentStage>=1&&s.currentStage<7)c.active++;if(c[s.status]!==undefined)c[s.status]++;}});
+  const cards=[["active",c.active,"Active","กำลังดำเนินการ","📦","t-ink"],["ON_TRACK",c.ON_TRACK,"On Track","ตามแผน","✓","t-ok"],["ATTENTION",c.ATTENTION,"Attention","เฝ้าระวัง","!","t-att"],["URGENT",c.URGENT,"Urgent","ด่วน","◴","t-urg"],["OVERDUE",c.OVERDUE,"Overdue","เลยกำหนด","⚠","t-ovd"],["PREBOOK",c.PREBOOK,"Pre-book","รอ Booking","◷","t-pre"]];
+  document.getElementById("kpis").innerHTML=cards.map(([id,n,l,th,ic,tone])=>
+    `<button class="kpi ${tone} ${st.kpi===id?"on":""}" data-kpi="${id}"><span class="kpi-ic">${ic}</span><span class="kpi-n">${n}</span><span class="kpi-l"><b>${l}</b><span>${th}</span></span></button>`).join("");
+  document.querySelectorAll("[data-kpi]").forEach(b=>b.onclick=()=>{st.kpi=st.kpi===b.dataset.kpi?"all":b.dataset.kpi;render();});
+}
+function headHtml(){
+  return HEAD.map(([k,label,cls])=>{
+    if(k==="docsx")return `<th class="${cls}">Docs</th>`;
+    const sorted=st.sort.key===k;
+    return `<th class="${cls} sortable ${sorted?"sorted":""}" data-sort="${k}"><span class="th-in">${label}<i class="ar">${sorted?(st.sort.dir==="asc"?"▲":"▼"):""}</i></span></th>`;
+  }).join("");
+}
+function docsCell(s){
+  const prog=dcount(s);
+  const dots=DOCS.map(([k,en,ab])=>`<span class="dc ${s.docs&&s.docs[k]?"on":""}" title="${en}">${ab}</span>`).join("");
+  const hs=`<span class="dc hs ${s.hsChecked?"on":""}" title="HS Code ${s.hsChecked?"checked":"not checked"}">HS</span>`;
+  return `<div class="docs">${dots}${hs}<span class="prog">${prog.done}/${prog.total}</span></div>`;
+}
+function rowHtml(s){
+  const c=SC[s.status];const late=(k)=>{const d=dDays(s[k]);return s.status!=="PREBOOK"&&!s.ata&&d!==null&&d<0?" late":"";};
+  return `<tr class="s-${s.status}" data-ref="${s.ref||s.poNos[0]}">
+    <td class="c-id">
+      <div class="owner"><span class="av">${initials(s.staff)}</span>${s.staff||"—"}${s.status==="PREBOOK"?'<span class="pre-tag">Pre-book</span>':""}</div>
+      <div class="sup" title="${s.supplier}">${s.supplier}</div>
+      <div class="po">${poText(s)||"—"}${s.ref?" · "+s.ref:""}</div>
+    </td>
+    <td class="col-status"><span class="st" style="color:${c.c};background:${c.bg}"><i style="background:${c.d}"></i>${c.l}</span></td>
+    <td class="col-stage">${s.currentStage<1?'<span class="stage pre">0</span>':'<span class="stage">'+s.currentStage+'</span>'}</td>
+    <td class="col-pend">${s.pendingAction?'<span class="pend" title="'+s.pendingAction+'">'+s.pendingAction+'</span>':'<span class="muted">—</span>'}</td>
+    <td class="col-sched">${s.forwarder?'<span class="pill fwd">'+s.forwarder+'</span>':'<span class="muted">—</span>'}</td>
+    <td class="col-sched">${s.mode?'<span class="pill mode">'+s.mode+'</span>':'<span class="muted">—</span>'}</td>
+    <td class="col-sched muted">${s.origin||"—"}</td>
+    <td class="col-sched"><span class="date">${fmtD(s.cls)}</span></td>
+    <td class="col-sched"><span class="date">${fmtD(s.etd)}</span></td>
+    <td class="col-sched"><span class="date${late("eta")}">${fmtD(s.eta)}</span></td>
+    <td class="col-sched">${s.ata?'<span class="date ok">'+fmtD(s.ata)+'</span>':'<span class="muted">—</span>'}</td>
+    <td class="col-sched">${s.delivery?'<span class="date">'+fmtD(s.delivery)+'</span>':'<span class="muted">—</span>'}</td>
+    <td class="col-cargo">${s.qty?'<span class="uom-n">'+s.qty+' <i class="uom">'+(s.uom||"")+'</i></span>':'<span class="muted">—</span>'}</td>
+    <td class="col-cargo">${s.cbm?'<span class="cbm">'+s.cbm+'</span>':'<span class="muted">—</span>'}</td>
+    <td class="col-docs">${docsCell(s)}</td>
+    <td class="col-docs muted">${s.license||"—"}</td>
+  </tr>`;
+}
+function render(){
+  document.body.className=(st.compact?"compact ":"")+Object.keys(st.cols).filter(k=>!st.cols[k]).map(k=>"hide-"+k).join(" ");
+  renderKpis();
+  document.getElementById("head").innerHTML=headHtml();
+  document.querySelectorAll("[data-sort]").forEach(th=>th.onclick=()=>{
+    const k=th.dataset.sort;const p=st.sort;
+    st.sort=p.key!==k?{key:k,dir:"asc"}:p.dir==="asc"?{key:k,dir:"desc"}:{key:null,dir:"asc"};render();
+  });
+  const rows=filtered();
+  document.getElementById("count").textContent=rows.length+" shipments";
+  const anyF=st.q||st.kpi!=="all"||st.fFwd!=="all"||st.fMode!=="all"||st.fStaff!=="all"||st.from||st.to;
+  document.getElementById("clear").style.display=anyF?"inline-flex":"none";
+  const tb=document.getElementById("tb"),emp=document.getElementById("empty");
+  if(!rows.length){tb.innerHTML="";emp.style.display="block";return;}
+  emp.style.display="none";
+  let html;
+  if(st.group==="none"){html=rows.map(rowHtml).join("");}
+  else{
+    const key={staff:s=>s.staff||"—",forwarder:s=>s.forwarder||"—",status:s=>SC[s.status].l}[st.group];
+    const m=new Map();rows.forEach(s=>{const k=key(s);if(!m.has(k))m.set(k,[]);m.get(k).push(s);});
+    html=[...m.entries()].sort((a,b)=>b[1].length-a[1].length).map(([k,items])=>
+      `<tr class="grouprow"><td colspan="16"><b>${k}</b><span class="gmeta">${items.length} shipments</span></td></tr>`+items.map(rowHtml).join("")).join("");
+  }
+  tb.innerHTML=html;
+  tb.querySelectorAll("tr[data-ref]").forEach(tr=>tr.onclick=()=>openDrawer(tr.dataset.ref));
+}
+function openDrawer(id){
+  const s=ROWS.find(x=>(x.ref||x.poNos[0])===id);if(!s)return;const c=SC[s.status];const prog=dcount(s);
+  document.getElementById("drawer").innerHTML=`
+    <div class="dh"><div class="dh-top"><span class="dh-ref">${s.ref||poText(s)}</span>
+      ${s.status==="PREBOOK"?'<span class="pre-tag">Pre-book</span>':""}
+      <span class="st" style="color:${c.c};background:${c.bg}"><i style="background:${c.d}"></i>${c.l}</span>
+      <button class="dh-x" onclick="closeDrawer()">✕</button></div>
+      <div class="dh-sup">${s.supplier}</div></div>
+    <div class="dbody">
+      <div class="card"><div class="card-h">Key Info</div><div class="kv">
+        <span class="k">Owner</span><span class="v">${s.staff||"—"}</span>
+        <span class="k">PO #</span><span class="v mono">${(s.poNos||[]).join(", ")||"—"}</span>
+        <span class="k">3PL</span><span class="v">${s.forwarder||"—"}</span>
+        <span class="k">Mode</span><span class="v">${s.mode||"—"}${s.cbm?" · "+s.cbm:""}</span>
+        <span class="k">Origin</span><span class="v">${s.origin||"—"}</span>
+        <span class="k">Qty</span><span class="v mono">${s.qty?s.qty+" "+(s.uom||""):"—"}</span>
+        <span class="k">FTA</span><span class="v">${s.fta||"—"}</span>
+        <span class="k">License</span><span class="v">${s.license||"—"}</span>
+        <span class="k">HS Code</span><span class="v"><span class="hs-pill ${s.hsChecked?"on":"off"}">${s.hsChecked?"✓ "+(s.hsCode||"checked"):"⚠ not checked"}</span></span>
+      </div></div>
+      <div class="card"><div class="card-h">Schedule</div><div class="kv">
+        <span class="k">CLS</span><span class="v mono">${fmtD(s.cls)}</span>
+        <span class="k">ETD</span><span class="v mono">${fmtD(s.etd)}</span>
+        <span class="k">ETA</span><span class="v mono">${fmtD(s.eta)}</span>
+        <span class="k">ATA</span><span class="v mono">${fmtD(s.ata)}</span>
+        <span class="k">ETA WH</span><span class="v mono">${fmtD(s.delivery)}</span>
+      </div></div>
+      <div class="card"><div class="card-h">Documents · ${prog.done}/${prog.total}</div>
+        ${DOCS.map(([k,en])=>`<div class="chk ${s.docs&&s.docs[k]?"on":""}"><span class="box">${s.docs&&s.docs[k]?"✓":""}</span>${en}</div>`).join("")}
+      </div>
+      <div class="card"><div class="card-h">Pending Action</div>
+        <div style="font-size:12.5px;line-height:1.5;color:${s.pendingAction?"var(--ink)":"var(--ink-3)"}">${s.pendingAction||"— none —"}</div>
+      </div>
+    </div>`;
+  document.getElementById("scrim").classList.add("open");
+  document.getElementById("drawer").classList.add("open");
+}
+function closeDrawer(){document.getElementById("scrim").classList.remove("open");document.getElementById("drawer").classList.remove("open");}
+document.getElementById("scrim").onclick=closeDrawer;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer();});
+
+// controls
+function opt(a){return a.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");}
+document.getElementById("fStatus").innerHTML=opt([["all","All"],["ON_TRACK","🟢 On Track"],["ATTENTION","🟡 Attention"],["URGENT","🟠 Urgent"],["OVERDUE","🔴 Overdue"],["PREBOOK","🟣 Pre-book"]]);
+document.getElementById("fFwd").innerHTML=opt([["all","All 3PL"],...[...new Set(ROWS.map(s=>s.forwarder).filter(Boolean))].map(f=>[f,f])]);
+document.getElementById("fMode").innerHTML=opt([["all","All modes"],...[...new Set(ROWS.map(s=>s.mode).filter(Boolean))].map(m=>[m,m])]);
+document.getElementById("fStaff").innerHTML=opt([["all","Everyone"],...STAFF.map(s=>[s,s])]);
+document.getElementById("colchips").innerHTML=COLS.map(([k,l])=>`<button class="chip on" data-col="${k}"><span class="sw"></span>${l}</button>`).join("");
+document.querySelectorAll("[data-col]").forEach(b=>b.onclick=()=>{st.cols[b.dataset.col]=!st.cols[b.dataset.col];b.classList.toggle("on");render();});
+document.getElementById("q").oninput=e=>{st.q=e.target.value;render();};
+document.getElementById("group").onchange=e=>{st.group=e.target.value;render();};
+document.getElementById("fStatus").onchange=e=>{st.kpi=e.target.value;render();};
+document.getElementById("fFwd").onchange=e=>{st.fFwd=e.target.value;render();};
+document.getElementById("fMode").onchange=e=>{st.fMode=e.target.value;render();};
+document.getElementById("fStaff").onchange=e=>{st.fStaff=e.target.value;render();};
+document.getElementById("dateField").onchange=e=>{st.dateField=e.target.value;render();};
+document.getElementById("fFrom").onchange=e=>{st.from=e.target.value;render();};
+document.getElementById("fTo").onchange=e=>{st.to=e.target.value;render();};
+document.querySelectorAll("#dens button").forEach(b=>b.onclick=()=>{st.compact=b.dataset.d==="compact";document.querySelectorAll("#dens button").forEach(x=>x.classList.toggle("on",x===b));render();});
+document.getElementById("clear").onclick=()=>{st={...st,q:"",kpi:"all",fFwd:"all",fMode:"all",fStaff:"all",from:"",to:""};document.getElementById("q").value="";document.getElementById("fStatus").value="all";document.getElementById("fFwd").value="all";document.getElementById("fMode").value="all";document.getElementById("fStaff").value="all";document.getElementById("fFrom").value="";document.getElementById("fTo").value="";render();};
+render();
+</script>
+</body>
+</html>
